@@ -1,9 +1,9 @@
 package E2;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.BinaryOperator;
 import java.util.stream.IntStream;
 
 /**
@@ -59,15 +59,36 @@ public class Cards extends Object {
      * @return 提出したいカード
      */
     public Card determineSubmitCard(int count) {
-        int timing = 6;
-        Card card;
-        if (count > timing) {
-            card = this.findHighestElement();
-        } else {
-            card = this.findLowestElement();
-        }
+        int timing = 3;
+        Card aCard = (count > timing) ? this.findHighestElement() : this.findLowestElement();
 
-        return card;
+        return aCard;
+    }
+
+    /**
+     * 評価関数 評価値が高い方を得る
+     *
+     * @return 関数オブジェクト
+     */
+    private BinaryOperator<Card> higherExpectedValue() {
+        return (aCard, anotherCard) -> {
+            if (Card.comparator().compare(aCard, anotherCard) < 0) return anotherCard;
+
+            return aCard;
+        };
+    }
+
+    /**
+     * 評価関数 評価値が低い方を得る
+     *
+     * @return 関数オブジェクト
+     */
+    private BinaryOperator<Card> lowerExpectedValue() {
+        return (aCard, anotherCard) -> {
+            if (Card.comparator().compare(aCard, anotherCard) > 0) return anotherCard;
+
+            return aCard;
+        };
     }
 
     /**
@@ -76,13 +97,7 @@ public class Cards extends Object {
      * @return もっとも評価値が高い要素
      */
     private Card findHighestElement() {
-        return this.cards.entrySet().stream().map(Entry::getValue).filter(aCard1 -> !aCard1.isUsed()).reduce(new Card(true, -1), (a, b) -> {
-            Comparator<Card> comp = Card.comparator();
-
-            if (comp.compare(a, b) < 0) return b;
-
-            return a;
-        });
+        return this.cards.entrySet().stream().map(Entry::getValue).filter(aCard1 -> !aCard1.isUsed()).reduce(new Card(true, -(1 << 15)), this.higherExpectedValue());
     }
 
     /**
@@ -91,13 +106,7 @@ public class Cards extends Object {
      * @return もっとも評価値が低い要素
      */
     private Card findLowestElement() {
-        return this.cards.entrySet().stream().map(Entry::getValue).filter(aCard1 -> !aCard1.isUsed()).reduce(new Card(true, 114514), (a, b) -> {
-            Comparator<Card> comp = Card.comparator();
-
-            if (comp.compare(a, b) > 0) return b;
-
-            return a;
-        });
+        return this.cards.entrySet().stream().map(Entry::getValue).filter(aCard1 -> !aCard1.isUsed()).reduce(new Card(true, (1 << 15)), this.lowerExpectedValue());
     }
 
     /**

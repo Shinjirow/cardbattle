@@ -26,12 +26,12 @@ public class Card extends Object implements Comparable<Card> {
     /**
      * このカードを今出した時に得られる期待値が入る
      */
-    private int expectedValue;
+    private int evaluatedValue;
 
     /**
      * コンストラクタ
      *
-     * @param value
+     * @param value - カードの値
      */
     public Card(int value) {
         assert (0 < value && value < 14) : "incorrect number of initialize value";
@@ -44,13 +44,14 @@ public class Card extends Object implements Comparable<Card> {
     /**
      * 特殊なコンストラクタ 要素を評価順に集約する際にスタート地点として使う
      *
-     * @param debug         - 一般的に使われたくないので trueじゃないとassertが文句言える
-     * @param expectedValue 評価値
+     * @param debug          - 一般的に使われたくないので trueじゃないとassertが文句言える
+     * @param evaluatedValue 評価値
      */
-    public Card(boolean debug, int expectedValue) {
+    public Card(boolean debug, int evaluatedValue) {
         assert debug : "意図しない使用方法です";
 
-        this.expectedValue = expectedValue;
+        this.evaluatedValue = evaluatedValue;
+        return;
     }
 
     /**
@@ -69,7 +70,7 @@ public class Card extends Object implements Comparable<Card> {
      * @param rivalCard - ライバルのカードが使われているかの情報
      */
     public void update(int value, int[] rivalCard) {
-        this.expectedValue = 0;
+        this.evaluatedValue = 0;
         this.used = (value != 0);
         if (!this.used) this.evaluate(rivalCard);
         return;
@@ -81,12 +82,12 @@ public class Card extends Object implements Comparable<Card> {
      * @param rivalCard - ライバルのカードの情報
      */
     private void evaluate(int[] rivalCard) {
-        IntStream.range(1, rivalCard.length).filter(rivalCardNumber -> rivalCard[rivalCardNumber] == 0).forEach(rivalCardNumber -> {
-            int eval = this.compareTo(new Card(rivalCardNumber));
+        IntStream.range(1, rivalCard.length).filter(rivalCardNumber -> rivalCard[rivalCardNumber] == 0).boxed().map(Card::new).forEach(aRivalCard -> {
+            int eval = this.compareTo(aRivalCard);
             if (eval > 0) {
-                this.expectedValue += this.potential * 2;
-            } else if (eval == 0) {
-                this.expectedValue += this.potential;
+                this.evaluatedValue += (this.potential + aRivalCard.potential);
+            } else if (eval < 0) {
+                this.evaluatedValue -= (this.potential + aRivalCard.potential);
             }
         });
         return;
@@ -107,7 +108,7 @@ public class Card extends Object implements Comparable<Card> {
         aBuffer.append(", Potential = ");
         aBuffer.append(this.potential);
         aBuffer.append(", ExpectedValue = ");
-        aBuffer.append(this.expectedValue);
+        aBuffer.append(this.evaluatedValue);
         return aBuffer.toString();
     }
 
@@ -136,12 +137,12 @@ public class Card extends Object implements Comparable<Card> {
     /**
      * 自身を評価値で比較するコンパレータを応答する
      *
-     * @return Comparator
+     * @return Comparator 第一引数が大きい場合 正, 第二引数が大きい場合 負
      */
     public static Comparator<Card> comparator() {
         return (a, b) -> {
-            if (a.expectedValue == b.expectedValue) return 0;
-            else if (a.expectedValue > b.expectedValue) return 1;
+            if (a.evaluatedValue == b.evaluatedValue) return 0;
+            else if (a.evaluatedValue > b.evaluatedValue) return 1;
             else return -1;
         };
     }
